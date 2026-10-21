@@ -18,6 +18,11 @@ def make_settings(model_path: Path) -> Settings:
 
 
 @pytest.fixture
+def auth_headers() -> dict[str, str]:
+    return {"X-API-Key": TEST_API_KEY}
+
+
+@pytest.fixture
 def model_metadata() -> dict[str, Any]:
     return json.loads((MODEL_PATH.parent / "metadata.json").read_text())
 
