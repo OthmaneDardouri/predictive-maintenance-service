@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    image: pm-service-api:local
+    # Secrets come from .env at runtime (never baked into the image).
+    env_file: .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
