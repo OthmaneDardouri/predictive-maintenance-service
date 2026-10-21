@@ -195,3 +195,17 @@ stops after each one; I review the diff, run the checks, and commit myself
 - **Design:** the whole workflow has `contents: read`; only the `publish` job, which runs
   only on pushes to `main` after e2e passes, gets `packages: write`. No secret is needed:
   e2e uses a random key generated in the job, publish uses the built-in `GITHUB_TOKEN`.
+
+## Phase 7 - Observability
+
+### 26. Over-engineering stopped
+- **Proposed:** besides `/metrics`, the agent started adding Prometheus + Grafana in a
+  separate compose file, a provisioned dashboard, alert rules and a traffic generator.
+- **What I changed:** I asked it not to over-engineer. It kept `/metrics` with 6 metrics
+  and moved the alerts into `docs/MONITORING.md` as PromQL. The Grafana image download
+  had also failed, so the extra stack was cost without value.
+- **Lesson:** the AI tends to add "optional" extras; scope has to be kept by me.
+
+### 27. Metrics endpoint exposed through the frontend
+- **Spotted by the agent:** nginx forwards every `/api/*` path, so `/metrics` would have
+  been public. Added `location = /api/metrics { return 404; }` and an e2e test for it.
