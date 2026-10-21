@@ -7,3 +7,15 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: pm-service-frontend:local
+    # nginx reads API_KEY from here and adds it to proxied requests server-side.
+    env_file: .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

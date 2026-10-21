@@ -94,3 +94,42 @@ stops after each one; I review the diff, run the checks, and commit myself
   sent requests: `/ready` 200, `/predict` 200 with probability 0.95 for a stressed
   machine, 401 without key, 422 with negative torque. Logs were JSON with the same
   `request_id` on the prediction log and the access log.
+
+## Phase 3 - Docker
+
+### 13. Base image tags checked, not guessed
+- **Proposed:** `python:3.15.0-slim-trixie`, `node:24.22.1-alpine`,
+  `nginxinc/nginx-unprivileged:1.30.0-alpine`. The agent checked that each tag exists on
+  Docker Hub, and used exact versions instead of moving tags like `3.15-slim`.
+- **Verification:** the build pulled all three images.
+
+### 14. Verifying the container, not just the build
+- **Checks run:** `docker compose up` → api `healthy` (HEALTHCHECK works);
+  `whoami` → `app` (api) and `nginx` (frontend), so neither runs as root;
+  `ls -la /app` → only `models/`, no `.env` in the image; `/predict` without key → 401.
+- **Image size:** api 697 MB, of which the virtualenv is 375 MB (scipy 110 MB, pandas
+  74 MB, sklearn 49 MB, numpy 43 MB). Most of it is the scientific stack. Frontend: 82 MB.
+
+## Phase 4 - Frontend
+
+### 15. Type-check error introduced by the agent
+- **Proposed:** `tsconfig.json` included `vite.config.ts`.
+- **What was wrong:** `npm run build` failed with `Cannot find name 'process'`, because
+  the config file runs in Node but was type-checked with browser types only.
+- **Options:** add `@types/node` (new dependency) or exclude the config from `tsc`.
+- **Decision:** excluded it. `tsc` checks only the browser code in `src/`, Vite still
+  loads the config.
+
+### 16. Recent tool versions: uncertainty stated, then verified
+- **Proposed:** TypeScript 7.0.2 (the new native compiler) and Vite 8.3.5. The agent said
+  it did not know TypeScript 7's options well and chose a conservative config.
+- **Verification:** after the fix above, `npm run build` passed locally and in Docker.
+
+### 17. API key never reaches the browser
+- **Design (option A, chosen):** the browser calls `/api/predict` on the same origin and
+  nginx adds `X-API-Key` server-side from an environment variable.
+- **Verification:** searched the built bundle (`dist/`) and the HTML/JS served by nginx
+  for the key: not found. `/api/predict` through nginx → 200, direct `/predict` without key
+  → 401. The nginx `$request_id` reached the API logs as the request id.
+- **Known limit:** anyone who can reach the frontend can make predictions; the key only
+  protects the API from direct calls (see production gaps).
