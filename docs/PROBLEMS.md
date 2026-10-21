@@ -23,3 +23,29 @@ Real blockers hit during the project, what was tried, and how (or whether) they 
   closed capture stream.
 - **Fix:** the handler resolves `sys.stdout` at each `emit()`. Production behaviour is
   unchanged (stdout is never swapped there), and tests now read the real JSON output.
+
+## Feature branches created from an outdated main
+- **Problem:** twice I created the next phase branch before merging the previous pull
+  request. `feat/docker` contained the Dockerfile but not the API code from phase 2, so
+  the build would have failed.
+- **How it was found:** the agent checked whether the previous branch was an ancestor of
+  `HEAD` (`git merge-base --is-ancestor feat/api HEAD` → no).
+- **Fix:** merged the phase 2 PR, then `git fetch origin` and
+  `git rebase --autostash origin/main` on `feat/docker`. The branch was not pushed yet, so
+  rewriting it was safe, and `--autostash` kept the uncommitted frontend work.
+- **Lesson:** merge, `git pull`, and only then create the next branch.
+
+## Docker Desktop could not start (WSL install stuck at 93.7%)
+- **Problem:** `docker version` → `Docker Desktop is unable to start`; `wsl --install`
+  seemed stuck at 93.7%.
+- **Investigation:** `wsl --version` showed WSL 3.0.3 and its kernel already installed;
+  `wsl -l -v` showed no distributions; the `wsl` process had an open connection to a
+  Canonical server and its CPU time did not grow. So only the Ubuntu download was stuck.
+- **Fix:** cancelled the Ubuntu download (Docker Desktop uses its own internal
+  distribution), restarted Windows, started Docker Desktop.
+
+## `npm` not recognized
+- **Problem:** `npm install` → `The term 'npm' is not recognized`.
+- **Cause:** Node.js was not installed. After installing it, an already-open terminal
+  still did not see it: PATH changes only apply to new sessions.
+- **Fix:** `winget install OpenJS.NodeJS.LTS`, then a new terminal.

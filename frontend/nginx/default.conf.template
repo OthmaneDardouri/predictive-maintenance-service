@@ -1,0 +1,23 @@
+# Rendered at container start by the nginx image's envsubst step:
+# only defined environment variables (API_UPSTREAM, API_KEY) are replaced.
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Trailing slash on proxy_pass strips the /api prefix: /api/predict -> /predict.
+    location /api/ {
+        proxy_pass ${API_UPSTREAM}/;
+        # Added server-side, replacing any key sent by the browser.
+        proxy_set_header X-API-Key "${API_KEY}";
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
