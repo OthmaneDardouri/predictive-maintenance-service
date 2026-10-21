@@ -28,6 +28,9 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# e2e tests need the docker compose stack: run them with `python scripts/run_e2e.py`.
+addopts = "-m 'not e2e'"
+markers = ["e2e: end-to-end tests against the running docker compose stack"]
 
 [tool.ruff]
 line-length = 100
