@@ -31,6 +31,21 @@ The quality gate (`tests/test_model_quality.py`) fails if recall on the failure 
 drops below 0.60 or PR-AUC below 0.70 on the holdout set in `tests/data/holdout.csv`.
 After retraining, regenerate the holdout with `python scripts/export_holdout.py`.
 
+## CI
+
+GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs on every pull
+request and on every push to `main`:
+
+```text
+python (ruff + pytest) ──┐
+                         ├──> e2e (docker compose + run_e2e.py) ──> publish (main only)
+frontend (tsc + build) ──┘
+```
+
+On `main`, the API image is pushed to GitHub Container Registry as
+`ghcr.io/<owner>/pm-service-api:<commit sha>` and `:latest`, using the built-in
+`GITHUB_TOKEN` with `packages: write` only for that job.
+
 ## Docker
 
 Create `.env` from the template and set a real `API_KEY`:
