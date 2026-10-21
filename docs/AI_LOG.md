@@ -60,3 +60,37 @@ stops after each one; I review the diff, run the checks, and commit myself
 - **Decision:** A, because it is simple and CI/Docker can use the model directly.
   Downside: every retrain adds 7.5 MB to the repo history. A model registry would fix
   this (see production gaps).
+
+## Phase 2 - API
+
+### 8. Dependencies: asked first this time
+- **Proposed:** fastapi, uvicorn, pydantic-settings, httpx with versions checked via
+  `pip index versions` (read-only), then waited for my approval before installing.
+- **Surprise:** fastapi 0.156 pulled in `opentelemetry-api`, which older versions did not.
+
+### 9. Deprecation warning corrected the AI's knowledge
+- **Proposed:** `httpx` for FastAPI's `TestClient` (the standard setup the agent knew).
+- **What happened:** running the tests with `-W error` showed that starlette 1.9
+  deprecates `httpx` in favour of `httpx2`. The agent did not know this.
+- **Decision:** kept `httpx` for now (works, one warning). To revisit before it breaks.
+- **Lesson:** run tests with warnings visible; recent library changes are where the AI's
+  knowledge is weakest.
+
+### 10. Lint caught a non-idiomatic pattern
+- **Proposed:** FastAPI dependencies as default values (`model = Depends(get_model)`).
+- **What was wrong:** ruff `B008` flagged it. The agent rewrote them with `Annotated`,
+  which is the style recommended by current FastAPI docs.
+- **Lesson:** lint AI-generated code like any other code.
+
+### 11. Wrong first hypothesis on failing logging tests
+- **Proposed:** 4 logging tests failed; the agent first blamed pytest fixture order.
+- **Verification:** a temporary test with both fixture orders failed too, so the
+  hypothesis was wrong. Printing the root logger handlers showed the real cause (see
+  `PROBLEMS.md`).
+- **Lesson:** test a hypothesis before applying a fix based on it.
+
+### 12. Manual end-to-end check
+- **Verification:** besides the 36 unit/API tests, started a real uvicorn server and
+  sent requests: `/ready` 200, `/predict` 200 with probability 0.95 for a stressed
+  machine, 401 without key, 422 with negative torque. Logs were JSON with the same
+  `request_id` on the prediction log and the access log.
