@@ -209,3 +209,15 @@ stops after each one; I review the diff, run the checks, and commit myself
 ### 27. Metrics endpoint exposed through the frontend
 - **Spotted by the agent:** nginx forwards every `/api/*` path, so `/metrics` would have
   been public. Added `location = /api/metrics { return 404; }` and an e2e test for it.
+
+## Phase 8 - Kubernetes
+
+### 28. Reproducing the expected blocker on purpose
+- **Approach:** the agent applied the manifests before loading the images into kind, to
+  see the real `ImagePullBackOff` and its event message, then fixed it with `kind load`
+  (see `PROBLEMS.md`).
+- **Verification:** `--dry-run=server` before applying; pods `1/1 Ready`; prediction
+  through `port-forward` to the frontend Service; deleted pod recreated; a rollout with a
+  non-existent image left the old pods serving, and `rollout undo` restored it.
+- **Kept simple:** no Ingress and no metrics-server installed; both explained in
+  `docs/KUBERNETES.md` (the HPA shows `cpu: <unknown>` without metrics-server).

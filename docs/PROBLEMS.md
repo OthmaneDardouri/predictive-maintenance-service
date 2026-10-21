@@ -68,3 +68,12 @@ Real blockers hit during the project, what was tried, and how (or whether) they 
   reverted the commit with `git revert` in a PR (no history rewrite on a shared branch),
   and moved `v0.2.0` to the last green commit.
 - **Lesson:** CI that reports failures is not enough; the repository must enforce them.
+
+## Kubernetes pods stuck in ImagePullBackOff
+- **Problem:** after `kubectl apply -f k8s/`, all pods were in `ImagePullBackOff`. Events:
+  `failed to resolve reference "docker.io/library/pm-service-api:0.1.0": pull access denied`.
+- **Cause:** kind runs Kubernetes inside its own container, with its own image store. It
+  cannot see images built with local Docker, so it tried Docker Hub, where they do not exist.
+- **Fix:** `kind load docker-image pm-service-api:0.1.0 pm-service-frontend:0.1.0 --name pm-service`,
+  then `kubectl rollout restart`. In a real cluster the images would come from a registry
+  (e.g. GHCR, already published by CI).
