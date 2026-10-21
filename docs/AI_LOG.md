@@ -133,3 +133,15 @@ stops after each one; I review the diff, run the checks, and commit myself
   → 401. The nginx `$request_id` reached the API logs as the request id.
 - **Known limit:** anyone who can reach the frontend can make predictions; the key only
   protects the API from direct calls (see production gaps).
+
+### 18. A "fix" that was never verified
+- **Claim:** in phase 0 the agent said it had rewritten `README.md`, originally saved as
+  UTF-16 by PowerShell, as UTF-8.
+- **What was wrong:** while reviewing the repo before the next phase, `git show --stat`
+  listed `README.md` as `Bin`. `file README.md` → `UTF-16, little-endian`: the editing
+  tools had kept the original encoding, so the README was never fixed, and GitHub showed
+  its diffs as binary.
+- **Fix:** converted it to UTF-8 and scanned all tracked files (`file`, `git ls-files --eol`).
+  Only the README was affected; CRLF in the working copy is expected with
+  `core.autocrlf=true`, and the repository stores LF.
+- **Lesson:** "done" from the AI is a claim; check the result (here, one `file` command).
