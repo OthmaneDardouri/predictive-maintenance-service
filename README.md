@@ -20,6 +20,17 @@ $env:API_KEY="dev-key"; uvicorn pm_service.api.main:app --reload
 
 API docs: http://localhost:8000/docs
 
+## Tests
+
+| Command | What it runs |
+|---|---|
+| `pytest` | unit and API tests, plus the model quality gate (e2e excluded) |
+| `python scripts/run_e2e.py` | starts docker compose, waits for `/ready`, runs the e2e tests, stops the stack |
+
+The quality gate (`tests/test_model_quality.py`) fails if recall on the failure class
+drops below 0.60 or PR-AUC below 0.70 on the holdout set in `tests/data/holdout.csv`.
+After retraining, regenerate the holdout with `python scripts/export_holdout.py`.
+
 ## Docker
 
 Create `.env` from the template and set a real `API_KEY`:
