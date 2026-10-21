@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -13,6 +14,7 @@ from pm_service.api.schemas import (
 from pm_service.api.security import require_api_key
 from pm_service.model import LoadedModel
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -49,8 +51,10 @@ def version(request: Request) -> VersionResponse:
 @router.post("/predict", dependencies=[Depends(require_api_key)])
 def predict(payload: PredictRequest, model: ModelDep) -> PredictResponse:
     probability = model.predict_failure_probability(payload.model_dump())
-    return PredictResponse(
+    response = PredictResponse(
         failure_probability=probability,
         prediction=1 if probability >= model.threshold else 0,
         model_version=model.version,
     )
+    logger.info("prediction", extra=response.model_dump())
+    return response

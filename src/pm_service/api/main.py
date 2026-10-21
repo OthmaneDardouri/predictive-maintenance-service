@@ -5,8 +5,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from pm_service import __version__
+from pm_service.api.middleware import request_context_middleware
 from pm_service.api.routes import router
 from pm_service.config import Settings, get_settings
+from pm_service.logging_config import configure_logging
 from pm_service.model import load_model
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         resolved = settings or get_settings()
+        configure_logging(resolved.log_level)
         app.state.settings = resolved
         app.state.model = None
         try:
@@ -27,6 +30,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
 
     app = FastAPI(title="Predictive Maintenance Service", version=__version__, lifespan=lifespan)
+    app.middleware("http")(request_context_middleware)
     app.include_router(router)
     return app
 
