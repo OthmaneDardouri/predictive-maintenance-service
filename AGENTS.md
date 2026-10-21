@@ -5,7 +5,7 @@
 - Puoi eseguire test, lint e comandi docker per verificare il tuo lavoro.
 - Chiedi prima di installare nuove dipendenze e motiva la scelta.
 - Codice, commenti, nomi e log in inglese. Spiegazioni a me in italiano.
-- Python 3.12, type hints ovunque, versioni delle dipendenze fissate.
+- Python 3.15 (versione installata in locale), type hints ovunque, versioni delle dipendenze fissate.
 - Mai segreti nel codice, nei Dockerfile o nei manifest: solo variabili d'ambiente.
 - Preferisci soluzioni semplici e standard. Se ci sono scelte importanti,
   proponi 2 opzioni con trade-off e aspetta che io scelga.
