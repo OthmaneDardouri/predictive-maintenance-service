@@ -49,3 +49,22 @@ Real blockers hit during the project, what was tried, and how (or whether) they 
 - **Cause:** Node.js was not installed. After installing it, an already-open terminal
   still did not see it: PATH changes only apply to new sessions.
 - **Fix:** `winget install OpenJS.NodeJS.LTS`, then a new terminal.
+
+## CI did not run on my "broken on purpose" commit
+- **Problem:** I pushed a commit that breaks the quality gate, but no red check appeared.
+- **Cause:** the commit was pushed after PR #5 had already been merged. The workflow runs
+  only on `pull_request` and on `push` to `main`, so a push to a branch without an open
+  PR triggers nothing.
+- **Fix:** opened a new PR from a new branch with that commit.
+
+## A PR with red CI was merged into main
+- **Problem:** the CI on PR #6 failed as intended, but the PR was merged anyway, so `main`
+  got `decision_threshold: 0.9` and the `v0.2.0` tag pointed at the broken commit.
+- **Cause:** `main` had no branch protection, so GitHub allows merging regardless of the
+  checks, even while they are still running.
+- **What limited the damage:** the CI run on `main` failed, so the `publish` job (which
+  needs e2e to pass) never ran. The `latest` image on GHCR stayed the good one.
+- **Fix:** enabled branch protection on `main` (required status checks: the three CI jobs),
+  reverted the commit with `git revert` in a PR (no history rewrite on a shared branch),
+  and moved `v0.2.0` to the last green commit.
+- **Lesson:** CI that reports failures is not enough; the repository must enforce them.
