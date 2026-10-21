@@ -76,6 +76,17 @@ def test_proxy_propagates_request_id(frontend: httpx.Client) -> None:
     assert len(response.headers["X-Request-ID"]) == 32
 
 
+def test_api_exposes_metrics_internally(api: httpx.Client) -> None:
+    response = api.get("/metrics")
+
+    assert response.status_code == 200
+    assert "predictions_total" in response.text
+
+
+def test_proxy_does_not_expose_metrics(frontend: httpx.Client) -> None:
+    assert frontend.get("/api/metrics").status_code == 404
+
+
 def test_frontend_bundle_does_not_contain_key(frontend: httpx.Client, api_key: str) -> None:
     html = frontend.get("/").text
     scripts = [part.split('"')[0] for part in html.split('src="')[1:]]

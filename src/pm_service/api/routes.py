@@ -1,9 +1,10 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from pm_service import __version__
+from pm_service import __version__, metrics
 from pm_service.api.schemas import (
     HealthResponse,
     ModelInfo,
@@ -57,4 +58,13 @@ def predict(payload: PredictRequest, model: ModelDep) -> PredictResponse:
         model_version=model.version,
     )
     logger.info("prediction", extra=response.model_dump())
+
+    metrics.PREDICTIONS.labels(str(response.prediction)).inc()
+    metrics.FAILURE_PROBABILITY.observe(probability)
+    metrics.INPUT_TORQUE.observe(payload.torque_nm)
     return response
+
+
+@router.get("/metrics", include_in_schema=False)
+def prometheus_metrics() -> Response:
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

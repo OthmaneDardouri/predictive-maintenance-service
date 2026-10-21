@@ -8,6 +8,7 @@ from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 
 from pm_service.logging_config import request_id_var
+from pm_service.metrics import HTTP_LATENCY, HTTP_REQUESTS
 
 logger = logging.getLogger("pm_service.access")
 
@@ -19,6 +20,13 @@ _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 def _resolve_request_id(request: Request) -> str:
     incoming = request.headers.get(REQUEST_ID_HEADER, "")
     return incoming if _VALID_REQUEST_ID.fullmatch(incoming) else uuid.uuid4().hex
+
+
+def _route_template(request: Request) -> str:
+    # Label by route template, never the raw URL: random 404 paths would create
+    # unbounded label values (high cardinality) in Prometheus.
+    route = request.scope.get("route")
+    return getattr(route, "path", "unmatched")
 
 
 async def request_context_middleware(
@@ -36,6 +44,11 @@ async def request_context_middleware(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={"detail": "internal server error"},
             )
+        elapsed = time.perf_counter() - start
+        route = _route_template(request)
+        HTTP_REQUESTS.labels(request.method, route, str(response.status_code)).inc()
+        HTTP_LATENCY.labels(request.method, route).observe(elapsed)
+
         response.headers[REQUEST_ID_HEADER] = request_id
         logger.info(
             "request completed",
@@ -43,7 +56,7 @@ async def request_context_middleware(
                 "method": request.method,
                 "path": request.url.path,
                 "status": response.status_code,
-                "latency_ms": round((time.perf_counter() - start) * 1000, 2),
+                "latency_ms": round(elapsed * 1000, 2),
             },
         )
         return response

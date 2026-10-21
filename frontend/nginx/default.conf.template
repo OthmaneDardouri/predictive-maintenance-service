@@ -11,6 +11,11 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # Metrics are for Prometheus on the internal network, not for the public frontend.
+    location = /api/metrics {
+        return 404;
+    }
+
     # Trailing slash on proxy_pass strips the /api prefix: /api/predict -> /predict.
     location /api/ {
         proxy_pass ${API_UPSTREAM}/;
