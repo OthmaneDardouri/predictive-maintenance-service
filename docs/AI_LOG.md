@@ -175,3 +175,23 @@ stops after each one; I review the diff, run the checks, and commit myself
 - **Verification:** `scripts/run_e2e.py` passed 9/9 e2e tests, and passed again after
   temporarily moving my `.env` away: CI has no `.env`, so the script creates one with a
   random key and deletes it at the end.
+
+## Phase 6 - CI
+
+### 23. Action versions newer than the AI knew
+- **Checked:** latest releases on the GitHub API: `checkout@v7`, `setup-python@v7`,
+  `setup-node@v7`, `docker/login-action@v4`, `build-push-action@v7`. All newer major
+  versions than the agent had seen; Python 3.15.0 is in the runners' version manifest.
+- **Risk stated:** inputs (`python-version`, `cache`, `tags`...) are assumed unchanged
+  across majors. Verified locally with `actionlint` (run via Docker, exit 0) and then by
+  the first real CI run.
+
+### 24. Lowercase image name for GHCR
+- **Spotted by the agent:** GHCR requires lowercase image names, while the owner is
+  `OthmaneDardouri`. The workflow lowercases it in bash (`${GITHUB_REPOSITORY_OWNER,,}`)
+  instead of hard-coding the name.
+
+### 25. Least-privilege token
+- **Design:** the whole workflow has `contents: read`; only the `publish` job, which runs
+  only on pushes to `main` after e2e passes, gets `packages: write`. No secret is needed:
+  e2e uses a random key generated in the job, publish uses the built-in `GITHUB_TOKEN`.
