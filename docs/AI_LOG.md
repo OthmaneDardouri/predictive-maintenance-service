@@ -145,3 +145,33 @@ stops after each one; I review the diff, run the checks, and commit myself
   Only the README was affected; CRLF in the working copy is expected with
   `core.autocrlf=true`, and the repository stores LF.
 - **Lesson:** "done" from the AI is a claim; check the result (here, one `file` command).
+
+## Phase 5 - End-to-end tests and quality gate
+
+### 19. The quality gate needs data that CI does not have
+- **Problem spotted by the agent:** the gate must score the model on the test set, but
+  `data/raw/` is git-ignored, so CI would have no data.
+- **Decision:** `scripts/export_holdout.py` exports only the 2000-row test split (61 KB)
+  to `tests/data/holdout.csv`, with the same `train_test_split` call and parameters as
+  `train.py`. The dataset license (CC BY 4.0) allows it.
+- **Verification:** a test checks that recall and PR-AUC on the holdout equal the ones in
+  `metadata.json`. If the holdout were a different split, or the model had changed, it
+  would fail.
+
+### 20. Choosing the gate threshold
+- **Proposed:** recall >= 0.60 (current 0.66) and PR-AUC >= 0.70 (current 0.76).
+- **Reasoning:** 68 failures in the holdout, so each missed failure costs ~1.5 recall
+  points. 0.60 tolerates ~4 extra misses from retraining noise, but blocks a model that
+  clearly finds fewer failures. PR-AUC does not depend on the 0.5 threshold.
+
+### 21. Reviewing existing tests
+- **Added:** boundary values accepted, empty API key, malformed JSON, wrong HTTP method,
+  request id on error responses, prediction consistent with the threshold, not ready when
+  `metadata.json` is missing.
+- **Result:** all passed on the first run, so no new bugs, but these behaviours are now
+  protected against regressions.
+
+### 22. Testing the CI path locally
+- **Verification:** `scripts/run_e2e.py` passed 9/9 e2e tests, and passed again after
+  temporarily moving my `.env` away: CI has no `.env`, so the script creates one with a
+  random key and deletes it at the end.
